@@ -51,53 +51,85 @@ class TAToolApp {
             mainClearFilesBtn.addEventListener('click', () => this._clearAllFiles());
         }
 
-        // レイアウト選択
-        const layoutRadios = document.querySelectorAll('input[name="layout"]');
-        layoutRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => this._handleLayoutChange(e));
+        // ========== 座席表設定 ==========
+        const seatColsInput = document.getElementById('seatCols');
+        const seatRowsInput = document.getElementById('seatRows');
+        const seatOrderRadios = document.querySelectorAll('input[name="seatOrder"]');
+
+        if (seatColsInput) seatColsInput.addEventListener('input', () => this._updateSeatInfo());
+        if (seatRowsInput) seatRowsInput.addEventListener('input', () => this._updateSeatInfo());
+        
+        seatOrderRadios.forEach(radio => {
+            radio.addEventListener('change', () => this._updateSeatInfo());
         });
 
-        // 座席数の動的計算
-        const colsInput = document.getElementById('cols');
-        const rowsInput = document.getElementById('rows');
-        const threeInput = document.getElementById('threeSeatRows');
-        const twoInput = document.getElementById('twoSeatRows');
-
-        if (colsInput) colsInput.addEventListener('input', () => this._updateSeatInfo());
-        if (rowsInput) rowsInput.addEventListener('input', () => this._updateSeatInfo());
-        if (threeInput) threeInput.addEventListener('input', () => this._updateSeatInfo());
-        if (twoInput) twoInput.addEventListener('input', () => this._updateSeatInfo());
-
-        // 出力ファイル選択
-        const generateGradingCheckbox = document.getElementById('generate-grading');
-        const generateAttendanceCheckbox = document.getElementById('generate-attendance');
-        
-        if (generateGradingCheckbox) {
-            generateGradingCheckbox.addEventListener('change', (e) => {
-                const gradingConfig = document.getElementById('gradingConfig');
-                if (gradingConfig) gradingConfig.style.display = e.target.checked ? 'block' : 'none';
-            });
+        const generateSeatingBtn = document.getElementById('generateSeatingBtn');
+        if (generateSeatingBtn) {
+            generateSeatingBtn.addEventListener('click', () => this._generateSeatingChart());
         }
-        if (generateAttendanceCheckbox) {
-            generateAttendanceCheckbox.addEventListener('change', (e) => {
-                const attendanceConfig = document.getElementById('attendanceConfig');
-                if (attendanceConfig) attendanceConfig.style.display = e.target.checked ? 'block' : 'none';
+
+        const previewSeatingBtn = document.getElementById('previewSeatingBtn');
+        if (previewSeatingBtn) {
+            previewSeatingBtn.addEventListener('click', () => this._previewSeating());
+        }
+
+        // ========== 課題採点表設定 ==========
+        const numAssignmentsInput = document.getElementById('numAssignments');
+        if (numAssignmentsInput) {
+            numAssignmentsInput.addEventListener('input', (e) => {
+                this.config.numAssignments = parseInt(e.target.value) || 10;
             });
         }
 
-        // 生成ボタン
-        const generateBtn = document.getElementById('generateBtn');
-        if (generateBtn) {
-            generateBtn.addEventListener('click', () => this._generateFiles());
+        const generateGradingBtn = document.getElementById('generateGradingBtn');
+        if (generateGradingBtn) {
+            generateGradingBtn.addEventListener('click', () => this._generateGradingSheet());
         }
+
+        const previewGradingBtn = document.getElementById('previewGradingBtn');
+        if (previewGradingBtn) {
+            previewGradingBtn.addEventListener('click', () => this._previewGrading());
+        }
+
+        // ========== 出席票設定 ==========
+        const numWeeksInput = document.getElementById('numWeeks');
+        if (numWeeksInput) {
+            numWeeksInput.addEventListener('input', (e) => {
+                this.config.numWeeks = parseInt(e.target.value) || 15;
+            });
+        }
+
+        const startDateInput = document.getElementById('startDate');
+        if (startDateInput) {
+            startDateInput.addEventListener('change', (e) => {
+                this.config.startDate = e.target.value;
+            });
+        }
+
+        const generateAttendanceBtn = document.getElementById('generateAttendanceBtn');
+        if (generateAttendanceBtn) {
+            generateAttendanceBtn.addEventListener('click', () => this._generateAttendanceSheet());
+        }
+
+        const previewAttendanceBtn = document.getElementById('previewAttendanceBtn');
+        if (previewAttendanceBtn) {
+            previewAttendanceBtn.addEventListener('click', () => this._previewAttendance());
+        }
+
+        // ========== サイドバーメニュー ==========
+        const menuItems = document.querySelectorAll('.menu-item');
+        menuItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const tool = item.getAttribute('data-tool');
+                this._switchTool(tool);
+                
+                // アクティブ状態を更新
+                menuItems.forEach(m => m.classList.remove('active'));
+                item.classList.add('active');
+            });
+        });
 
         // リセットボタン
-        const resetBtn = document.getElementById('resetBtn');
-        if (resetBtn) {
-            resetBtn.addEventListener('click', () => this._reset());
-        }
-
-        // サイドバーのリセットボタン
         const resetAllBtn = document.getElementById('resetAllBtn');
         if (resetAllBtn) {
             resetAllBtn.addEventListener('click', () => this._reset());
@@ -109,6 +141,146 @@ class TAToolApp {
         const dateInput = document.getElementById('startDate');
         dateInput.value = formatDate(today);
         this.config.startDate = formatDate(today);
+    }
+
+    _switchTool(tool) {
+        if (!this.students.length) {
+            this._showStatus('uploadStatus', 'warning', '⚠️ 先に名簿をアップロードしてください');
+            return;
+        }
+
+        // すべてのセクションを非表示
+        document.getElementById('uploadSection').style.display = 'none';
+        document.getElementById('seatingContent').style.display = 'none';
+        document.getElementById('gradingContent').style.display = 'none';
+        document.getElementById('attendanceContent').style.display = 'none';
+        document.getElementById('completeSection').style.display = 'none';
+
+        // 選択されたツールを表示
+        switch (tool) {
+            case 'seating':
+                document.getElementById('seatingContent').style.display = 'block';
+                this._updateSeatInfo();
+                break;
+            case 'grading':
+                document.getElementById('gradingContent').style.display = 'block';
+                break;
+            case 'attendance':
+                document.getElementById('attendanceContent').style.display = 'block';
+                break;
+        }
+    }
+
+    _updateSeatInfo() {
+        const cols = parseInt(document.getElementById('seatCols').value) || 10;
+        const rows = parseInt(document.getElementById('seatRows').value) || 10;
+        const totalSeats = cols * rows;
+        const seatOrder = document.querySelector('input[name="seatOrder"]:checked').value;
+
+        this.config.cols = cols;
+        this.config.rows = rows;
+        this.config.seatOrder = seatOrder;
+
+        const orderText = seatOrder === 'student-id' ? '学籍番号順' : 'ランダム';
+        const statusText = `${cols}列 × ${rows}行 = ${totalSeats}座席 | 配置順序：${orderText} | 学生数：${this.students.length}名`;
+        
+        const seatInfo = document.getElementById('seatInfo');
+        if (seatInfo) {
+            if (totalSeats >= this.students.length) {
+                seatInfo.textContent = statusText;
+                seatInfo.style.color = '#28a745';
+            } else {
+                seatInfo.textContent = `⚠️ ${statusText} (座席が不足しています: ${totalSeats - this.students.length}人)`;
+                seatInfo.style.color = '#dc3545';
+            }
+        }
+    }
+
+    _generateSeatingChart() {
+        if (!this.students.length) {
+            this._showStatus('seatingStatus', 'error', '❌ 先に名簿をアップロードしてください');
+            return;
+        }
+
+        try {
+            const cols = parseInt(document.getElementById('seatCols').value) || 10;
+            const rows = parseInt(document.getElementById('seatRows').value) || 10;
+            const seatOrder = document.querySelector('input[name="seatOrder"]:checked').value;
+
+            const config = {
+                cols: cols,
+                rows: rows,
+                seatOrder: seatOrder
+            };
+
+            ExcelGenerator.generateSeatingChart(this.students, config);
+            this._showStatus('seatingStatus', 'success', '✅ 座席表を生成しました');
+        } catch (error) {
+            this._showStatus('seatingStatus', 'error', `❌ エラー：${error.message}`);
+        }
+    }
+
+    _previewSeating() {
+        const cols = parseInt(document.getElementById('seatCols').value) || 10;
+        const rows = parseInt(document.getElementById('seatRows').value) || 10;
+        const totalSeats = cols * rows;
+
+        if (totalSeats < this.students.length) {
+            alert(`座席数（${totalSeats}）が学生数（${this.students.length}）より少なくなっています`);
+        } else {
+            alert(`座席表プレビュー:\n${cols}列 × ${rows}行 = ${totalSeats}座席\n学生数: ${this.students.length}名`);
+        }
+    }
+
+    _generateGradingSheet() {
+        if (!this.students.length) {
+            this._showStatus('gradingStatus', 'error', '❌ 先に名簿をアップロードしてください');
+            return;
+        }
+
+        try {
+            const numAssignments = parseInt(document.getElementById('numAssignments').value) || 10;
+            const config = { numAssignments: numAssignments };
+
+            ExcelGenerator.generateGradingSheet(this.students, config);
+            this._showStatus('gradingStatus', 'success', '✅ 課題採点シートを生成しました');
+        } catch (error) {
+            this._showStatus('gradingStatus', 'error', `❌ エラー：${error.message}`);
+        }
+    }
+
+    _previewGrading() {
+        const numAssignments = parseInt(document.getElementById('numAssignments').value) || 10;
+        alert(`採点シートプレビュー:\n課題数: ${numAssignments}\n学生数: ${this.students.length}名\n\n※シートの列は課題数に応じて動的に変更されます`);
+    }
+
+    _generateAttendanceSheet() {
+        if (!this.students.length) {
+            this._showStatus('attendanceStatus', 'error', '❌ 先に名簿をアップロードしてください');
+            return;
+        }
+
+        try {
+            const numWeeks = parseInt(document.getElementById('numWeeks').value) || 15;
+            const startDate = document.getElementById('startDate').value;
+
+            if (!startDate) {
+                this._showStatus('attendanceStatus', 'error', '❌ 開始日を指定してください');
+                return;
+            }
+
+            const config = { numWeeks: numWeeks, startDate: startDate };
+            ExcelGenerator.generateAttendanceSheet(this.students, config);
+            this._showStatus('attendanceStatus', 'success', '✅ 出席票を生成しました');
+        } catch (error) {
+            this._showStatus('attendanceStatus', 'error', `❌ エラー：${error.message}`);
+        }
+    }
+
+    _previewAttendance() {
+        const numWeeks = parseInt(document.getElementById('numWeeks').value) || 15;
+        const startDate = document.getElementById('startDate').value;
+        alert(`出席票プレビュー:\n週数: ${numWeeks}週\n開始日: ${startDate}\n学生数: ${this.students.length}名`);
     }
 
     _handleMultipleCSVUpload(e) {

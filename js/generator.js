@@ -4,28 +4,15 @@
 
 class ExcelGenerator {
     /**
-     * 座席表を生成
+     * 座席表を生成（新バージョン）
      */
-    static generateSeatingChart(students, layout = 'grid', config = {}) {
+    static generateSeatingChart(students, config = {}) {
         const workbook = XLSX.utils.book_new();
-        
-        if (layout === 'grid') {
-            this._generateGridSeating(workbook, students, config);
-        } else if (layout === 'mixed') {
-            this._generateMixedSeating(workbook, students, config);
-        }
-        
-        XLSX.writeFile(workbook, '座席表.xlsx');
-        return true;
-    }
-
-    /**
-     * グリッド座席配置を生成
-     */
-    static _generateGridSeating(workbook, students, config) {
-        const ws = XLSX.utils.aoa_to_sheet([]);
         const cols = parseInt(config.cols) || 10;
-        const rows = parseInt(config.rows) || 15;
+        const rows = parseInt(config.rows) || 10;
+        const seatOrder = config.seatOrder || 'student-id';
+
+        const ws = XLSX.utils.aoa_to_sheet([]);
         
         // タイトル
         ws['A1'] = '座席表';
@@ -42,14 +29,21 @@ class ExcelGenerator {
             };
         }
         
+        // 配置順序に応じて学生を並べる
+        let orderedStudents = [...students];
+        if (seatOrder === 'random') {
+            orderedStudents = shuffle(orderedStudents);
+        }
+        // 学籍番号順の場合はそのまま（既にソート済みと仮定）
+
         // 学籍番号を配置
-        const shuffled = shuffle(students);
         let idx = 0;
         for (let col = 0; col < cols; col++) {
             for (let row = 0; row < rows; row++) {
-                if (idx < shuffled.length) {
+                if (idx < orderedStudents.length) {
                     const cellRef = XLSX.utils.encode_cell({ r: row + 2, c: col });
-                    ws[cellRef] = shuffled[idx].id;
+                    const student = orderedStudents[idx];
+                    ws[cellRef] = student.id || `学生${idx + 1}`;
                     ws[cellRef].s = {
                         alignment: { horizontal: 'center', vertical: 'center' },
                         border: {
@@ -70,80 +64,9 @@ class ExcelGenerator {
         
         workbook.SheetNames.push('座席表');
         workbook.Sheets['座席表'] = ws;
-    }
-
-    /**
-     * 混合座席配置（3人席+2人席）を生成
-     */
-    static _generateMixedSeating(workbook, students, config) {
-        const ws = XLSX.utils.aoa_to_sheet([]);
-        const threeRows = parseInt(config.threeSeatRows) || 5;
-        const twoRows = parseInt(config.twoSeatRows) || 10;
         
-        // タイトル
-        ws['A1'] = '座席表（3人席+2人席）';
-        ws['A1'].s = { font: { bold: true, sz: 14 } };
-        
-        // シャッフル
-        const shuffled = shuffle(students);
-        
-        let currentRow = 2;
-        let idx = 0;
-        
-        // 3人席セクション
-        ws[`A${currentRow}`] = '【3人席】5列';
-        ws[`A${currentRow}`].s = { font: { bold: true, sz: 11 } };
-        currentRow++;
-        
-        for (let r = 0; r < threeRows; r++) {
-            for (let c = 0; c < 3; c++) {
-                if (idx < shuffled.length) {
-                    const cellRef = XLSX.utils.encode_cell({ r: currentRow - 1 + r, c });
-                    ws[cellRef] = shuffled[idx].id;
-                    ws[cellRef].s = {
-                        alignment: { horizontal: 'center', vertical: 'center' },
-                        border: {
-                            top: { style: 'thin' },
-                            bottom: { style: 'thin' },
-                            left: { style: 'thin' },
-                            right: { style: 'thin' }
-                        }
-                    };
-                    idx++;
-                }
-            }
-        }
-        
-        currentRow += threeRows + 1;
-        
-        // 2人席セクション
-        ws[`A${currentRow}`] = '【2人席】10列';
-        ws[`A${currentRow}`].s = { font: { bold: true, sz: 11 } };
-        currentRow++;
-        
-        for (let r = 0; r < twoRows; r++) {
-            for (let c = 0; c < 2; c++) {
-                if (idx < shuffled.length) {
-                    const cellRef = XLSX.utils.encode_cell({ r: currentRow - 1 + r, c });
-                    ws[cellRef] = shuffled[idx].id;
-                    ws[cellRef].s = {
-                        alignment: { horizontal: 'center', vertical: 'center' },
-                        border: {
-                            top: { style: 'thin' },
-                            bottom: { style: 'thin' },
-                            left: { style: 'thin' },
-                            right: { style: 'thin' }
-                        }
-                    };
-                    idx++;
-                }
-            }
-        }
-        
-        ws['!cols'] = [{ wch: 12 }, { wch: 12 }, { wch: 12 }];
-        
-        workbook.SheetNames.push('座席表');
-        workbook.Sheets['座席表'] = ws;
+        XLSX.writeFile(workbook, '座席表.xlsx');
+        return true;
     }
 
     /**

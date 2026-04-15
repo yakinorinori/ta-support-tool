@@ -101,39 +101,34 @@
                     <h2>💺 座席配置設定</h2>
                     
                     <div class="card">
-                        <h3>レイアウトタイプ</h3>
-                        <div class="layout-options">
-                            <label class="radio-option">
-                                <input type="radio" name="layout" value="grid" checked />
-                                <span>グリッド配置（列数・行数指定）</span>
-                            </label>
-                            <label class="radio-option">
-                                <input type="radio" name="layout" value="mixed" />
-                                <span>混合配置（3人席 + 2人席）</span>
-                            </label>
+                        <div class="form-group">
+                            <label for="seatCols">列数：</label>
+                            <input type="number" id="seatCols" min="1" max="20" value="10" />
                         </div>
 
-                        <div id="gridConfig" class="config-section">
-                            <label for="cols">列数：
-                                <input type="number" id="cols" min="1" max="20" value="10" />
-                            </label>
-                            <label for="rows">行数：
-                                <input type="number" id="rows" min="1" max="30" value="15" />
-                            </label>
+                        <div class="form-group">
+                            <label for="seatRows">行数：</label>
+                            <input type="number" id="seatRows" min="1" max="30" value="10" />
                         </div>
 
-                        <div id="mixedConfig" class="config-section" style="display: none;">
-                            <label for="threeSeatRows">3人席の列数：
-                                <input type="number" id="threeSeatRows" min="1" max="20" value="5" />
-                            </label>
-                            <label for="twoSeatRows">2人席の列数：
-                                <input type="number" id="twoSeatRows" min="1" max="20" value="10" />
-                            </label>
+                        <div class="form-group">
+                            <label>配置順序：</label>
+                            <div class="radio-options">
+                                <label class="radio-option">
+                                    <input type="radio" name="seatOrder" value="student-id" checked />
+                                    <span>学籍番号順</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="seatOrder" value="random" />
+                                    <span>ランダム</span>
+                                </label>
+                            </div>
                         </div>
 
                         <p class="help-text" id="seatInfo">座席情報が表示されます</p>
 
                         <button id="generateSeatingBtn" class="btn btn-primary">座席表を生成</button>
+                        <button id="previewSeatingBtn" class="btn btn-secondary">プレビュー</button>
                         <div id="seatingStatus" class="status-message"></div>
                     </div>
                 </section>
@@ -143,12 +138,14 @@
                     <h2>📝 課題採点シート設定</h2>
                     
                     <div class="card">
-                        <label for="numAssignments">課題数：
-                            <input type="number" id="numAssignments" min="1" max="20" value="10" />
-                        </label>
-                        <p class="help-text">採点シートに含める課題の数を指定します</p>
+                        <div class="form-group">
+                            <label for="numAssignments">課題数：</label>
+                            <input type="number" id="numAssignments" min="1" max="30" value="10" />
+                            <p class="help-text">指定した課題数に応じて、シートの列数が自動的に変更されます</p>
+                        </div>
 
                         <button id="generateGradingBtn" class="btn btn-primary">課題採点シートを生成</button>
+                        <button id="previewGradingBtn" class="btn btn-secondary">プレビュー</button>
                         <div id="gradingStatus" class="status-message"></div>
                     </div>
                 </section>
@@ -158,15 +155,20 @@
                     <h2>📋 出席票設定</h2>
                     
                     <div class="card">
-                        <label for="numWeeks">講義回数（週数）：
-                            <input type="number" id="numWeeks" min="1" max="20" value="15" />
-                        </label>
-                        <label for="startDate">開始日：
+                        <div class="form-group">
+                            <label for="numWeeks">講義回数（週数）：</label>
+                            <input type="number" id="numWeeks" min="1" max="30" value="15" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="startDate">開始日：</label>
                             <input type="date" id="startDate" />
-                        </label>
+                        </div>
+
                         <p class="help-text">毎週同じ曜日で日付を計算します</p>
 
                         <button id="generateAttendanceBtn" class="btn btn-primary">出席票を生成</button>
+                        <button id="previewAttendanceBtn" class="btn btn-secondary">プレビュー</button>
                         <div id="attendanceStatus" class="status-message"></div>
                     </div>
                 </section>

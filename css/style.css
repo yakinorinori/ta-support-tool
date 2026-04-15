@@ -391,8 +391,44 @@ select:focus {
 
 /* ラジオ・チェックボックス */
 .layout-options,
-.config-section {
+.config-section,
+.form-group {
     margin: 20px 0;
+}
+
+/* フォームグループ */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--text-color);
+}
+
+.form-group input[type="number"],
+.form-group input[type="date"] {
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1em;
+}
+
+.form-group input[type="number"]:focus,
+.form-group input[type="date"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+}
+
+/* ラジオオプショングループ */
+.radio-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .radio-option,
