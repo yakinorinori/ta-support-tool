@@ -7,114 +7,171 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📚 TA Support Tool</h1>
-            <p>座席配置・課題採点シート・出席票を簡単生成</p>
-        </header>
+    <div class="app-container">
+        <!-- サイドバー -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>📚 TA Tool</h1>
+            </div>
 
-        <main>
-            <!-- ステップ1: 名簿アップロード -->
-            <section id="step1" class="step">
-                <h2>📋 ステップ 1: 名簿をアップロード</h2>
-                <div class="card">
-                    <label for="csvFile">CSV ファイルをアップロード：</label>
-                    <input type="file" id="csvFile" accept=".csv" />
-                    <p class="help-text">名簿数が下記に表示されます</p>
-                    <div id="uploadStatus" class="status-message"></div>
+            <div class="sidebar-content">
+                <!-- 名簿管理 -->
+                <div class="sidebar-section">
+                    <h3>📋 名簿管理</h3>
+                    <p class="student-count">0名</p>
                 </div>
-            </section>
 
-            <!-- ステップ2: 座席配置設定 -->
-            <section id="step2" class="step" style="display: none;">
-                <h2>💺 ステップ 2: 座席配置を設定</h2>
-                <div class="card">
-                    <label>座席レイアウトを選択：</label>
-                    <div class="layout-options">
-                        <label class="radio-option">
-                            <input type="radio" name="layout" value="grid" checked />
-                            <span>グリッド配置（列数と行を指定）</span>
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="layout" value="mixed" />
-                            <span>混合配置（3人席 + 2人席）</span>
-                        </label>
+                <!-- 機能メニュー -->
+                <nav class="sidebar-menu">
+                    <button class="menu-item active" data-tool="seating">
+                        <span class="icon">💺</span>
+                        <span>座席表</span>
+                    </button>
+                    <button class="menu-item" data-tool="grading">
+                        <span class="icon">📝</span>
+                        <span>課題採点</span>
+                    </button>
+                    <button class="menu-item" data-tool="attendance">
+                        <span class="icon">📋</span>
+                        <span>出席票</span>
+                    </button>
+                </nav>
+
+                <!-- リセットボタン -->
+                <button id="resetAllBtn" class="btn btn-outline btn-block">リセット</button>
+            </div>
+
+            <div class="sidebar-footer">
+                <p>v1.1 | <a href="https://github.com/yakinorinori/ta-support-tool" target="_blank">GitHub</a></p>
+            </div>
+        </aside>
+
+        <!-- メインコンテンツ -->
+        <main class="main-content">
+            <!-- ヘッダー -->
+            <header class="header">
+                <h1>TA Support Tool</h1>
+                <p>複数クラスの座席配置・採点シート・出席票を一括生成</p>
+            </header>
+
+            <div class="content-wrapper">
+                <!-- ステップ1: 複数名簿アップロード -->
+                <section id="uploadSection" class="content-section active">
+                    <h2>📋 ステップ1: 名簿をアップロード</h2>
+                    <div class="card">
+                        <p class="help-text">複数のCSVファイルをアップロードして、一つの結果を生成できます。</p>
+                        
+                        <div class="file-upload-area" id="fileUploadArea">
+                            <input type="file" id="csvFiles" accept=".csv" multiple />
+                            <div class="upload-hint">
+                                <p>📁 CSVファイルをドラッグ＆ドロップ</p>
+                                <p>または</p>
+                                <p><button type="button" class="btn btn-link">ファイルを選択</button></p>
+                            </div>
+                        </div>
+
+                        <!-- アップロード済みファイル一覧 -->
+                        <div id="uploadedFilesList" class="uploaded-files" style="display: none;">
+                            <h4>📂 アップロード済みファイル</h4>
+                            <ul id="filesList"></ul>
+                            <button id="clearFilesBtn" class="btn btn-small">ファイルをクリア</button>
+                        </div>
+
+                        <div id="uploadStatus" class="status-message"></div>
                     </div>
+                </section>
 
-                    <div id="gridConfig" class="config-section">
-                        <label for="cols">列数：<input type="number" id="cols" min="1" max="20" value="10" /></label>
-                        <label for="rows">行数：<input type="number" id="rows" min="1" max="30" value="15" /></label>
+                <!-- 座席表設定 -->
+                <section id="seatingContent" class="content-section" style="display: none;">
+                    <h2>💺 座席配置設定</h2>
+                    
+                    <div class="card">
+                        <h3>レイアウトタイプ</h3>
+                        <div class="layout-options">
+                            <label class="radio-option">
+                                <input type="radio" name="layout" value="grid" checked />
+                                <span>グリッド配置（列数・行数指定）</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="layout" value="mixed" />
+                                <span>混合配置（3人席 + 2人席）</span>
+                            </label>
+                        </div>
+
+                        <div id="gridConfig" class="config-section">
+                            <label for="cols">列数：
+                                <input type="number" id="cols" min="1" max="20" value="10" />
+                            </label>
+                            <label for="rows">行数：
+                                <input type="number" id="rows" min="1" max="30" value="15" />
+                            </label>
+                        </div>
+
+                        <div id="mixedConfig" class="config-section" style="display: none;">
+                            <label for="threeSeatRows">3人席の列数：
+                                <input type="number" id="threeSeatRows" min="1" max="20" value="5" />
+                            </label>
+                            <label for="twoSeatRows">2人席の列数：
+                                <input type="number" id="twoSeatRows" min="1" max="20" value="10" />
+                            </label>
+                        </div>
+
+                        <p class="help-text" id="seatInfo">座席情報が表示されます</p>
+
+                        <button id="generateSeatingBtn" class="btn btn-primary">座席表を生成</button>
+                        <div id="seatingStatus" class="status-message"></div>
                     </div>
+                </section>
 
-                    <div id="mixedConfig" class="config-section" style="display: none;">
-                        <label for="threeSeatRows">3人席の列数：<input type="number" id="threeSeatRows" min="1" max="20" value="5" /></label>
-                        <label for="twoSeatRows">2人席の列数：<input type="number" id="twoSeatRows" min="1" max="20" value="10" /></label>
-                    </div>
-
-                    <p class="help-text" id="seatInfo">座席計算中...</p>
-                </div>
-            </section>
-
-            <!-- ステップ3: 出力設定 -->
-            <section id="step3" class="step" style="display: none;">
-                <h2>⚙️ ステップ 3: 出力ファイルを選択</h2>
-                <div class="card">
-                    <fieldset>
-                        <legend>生成するファイル：</legend>
-                        <label class="checkbox-option">
-                            <input type="checkbox" id="generate-seating" checked />
-                            <span>座席表</span>
+                <!-- 課題採点設定 -->
+                <section id="gradingContent" class="content-section" style="display: none;">
+                    <h2>📝 課題採点シート設定</h2>
+                    
+                    <div class="card">
+                        <label for="numAssignments">課題数：
+                            <input type="number" id="numAssignments" min="1" max="20" value="10" />
                         </label>
-                        <label class="checkbox-option">
-                            <input type="checkbox" id="generate-grading" />
-                            <span>課題採点シート</span>
-                        </label>
-                        <label class="checkbox-option">
-                            <input type="checkbox" id="generate-attendance" />
-                            <span>出席票</span>
-                        </label>
-                    </fieldset>
+                        <p class="help-text">採点シートに含める課題の数を指定します</p>
 
-                    <div id="gradingConfig" class="config-section" style="display: none;">
-                        <label for="numAssignments">課題数：<input type="number" id="numAssignments" min="1" max="20" value="10" /></label>
+                        <button id="generateGradingBtn" class="btn btn-primary">課題採点シートを生成</button>
+                        <div id="gradingStatus" class="status-message"></div>
                     </div>
+                </section>
 
-                    <div id="attendanceConfig" class="config-section" style="display: none;">
-                        <label for="numWeeks">講義回数（週数）：<input type="number" id="numWeeks" min="1" max="20" value="15" /></label>
-                        <label for="startDate">開始日：<input type="date" id="startDate" /></label>
+                <!-- 出席票設定 -->
+                <section id="attendanceContent" class="content-section" style="display: none;">
+                    <h2>📋 出席票設定</h2>
+                    
+                    <div class="card">
+                        <label for="numWeeks">講義回数（週数）：
+                            <input type="number" id="numWeeks" min="1" max="20" value="15" />
+                        </label>
+                        <label for="startDate">開始日：
+                            <input type="date" id="startDate" />
+                        </label>
+                        <p class="help-text">毎週同じ曜日で日付を計算します</p>
+
+                        <button id="generateAttendanceBtn" class="btn btn-primary">出席票を生成</button>
+                        <div id="attendanceStatus" class="status-message"></div>
                     </div>
-                </div>
-            </section>
+                </section>
 
-            <!-- ステップ4: 生成 -->
-            <section id="step4" class="step" style="display: none;">
-                <h2>🎯 ステップ 4: ファイルを生成</h2>
-                <div class="card">
-                    <button id="generateBtn" class="btn btn-primary btn-large">ファイルを生成</button>
-                    <div id="generationStatus" class="status-message"></div>
-                </div>
-            </section>
-
-            <!-- ダウンロード完了 -->
-            <section id="stepFinal" class="step" style="display: none;">
-                <h2>✅ 完了！</h2>
-                <div class="card success">
-                    <p>ファイルが生成されました：</p>
-                    <ul id="downloadList"></ul>
-                    <button id="resetBtn" class="btn btn-secondary">リセット</button>
-                </div>
-            </section>
+                <!-- 完了画面 -->
+                <section id="completeSection" class="content-section" style="display: none;">
+                    <h2>✅ ファイル生成完了！</h2>
+                    <div class="card success">
+                        <p>以下のファイルがダウンロードされました：</p>
+                        <ul id="downloadList"></ul>
+                    </div>
+                </section>
+            </div>
         </main>
-
-        <footer>
-            <p>TA Support Tool v1.0 | <a href="https://github.com">GitHub</a></p>
-        </footer>
     </div>
 
     <!-- ライブラリの読み込み -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/generator.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/app-v2.js"></script>
 </body>
 </html>
