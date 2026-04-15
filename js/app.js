@@ -172,10 +172,18 @@ class TAToolApp {
     }
 
     _updateSeatInfo() {
-        const cols = parseInt(document.getElementById('seatCols').value) || 10;
-        const rows = parseInt(document.getElementById('seatRows').value) || 10;
+        const colsInput = document.getElementById('seatCols');
+        const rowsInput = document.getElementById('seatRows');
+        const seatOrderRadio = document.querySelector('input[name="seatOrder"]:checked');
+        
+        if (!colsInput || !rowsInput || !seatOrderRadio) {
+            return; // DOM要素がまだ読み込まれていない
+        }
+
+        const cols = parseInt(colsInput.value) || 10;
+        const rows = parseInt(rowsInput.value) || 10;
         const totalSeats = cols * rows;
-        const seatOrder = document.querySelector('input[name="seatOrder"]:checked').value;
+        const seatOrder = seatOrderRadio.value;
 
         this.config.cols = cols;
         this.config.rows = rows;
@@ -203,9 +211,18 @@ class TAToolApp {
         }
 
         try {
-            const cols = parseInt(document.getElementById('seatCols').value) || 10;
-            const rows = parseInt(document.getElementById('seatRows').value) || 10;
-            const seatOrder = document.querySelector('input[name="seatOrder"]:checked').value;
+            const colsInput = document.getElementById('seatCols');
+            const rowsInput = document.getElementById('seatRows');
+            const seatOrderRadio = document.querySelector('input[name="seatOrder"]:checked');
+            
+            if (!colsInput || !rowsInput || !seatOrderRadio) {
+                this._showStatus('seatingStatus', 'error', '❌ 座席表の設定が見つかりません');
+                return;
+            }
+
+            const cols = parseInt(colsInput.value) || 10;
+            const rows = parseInt(rowsInput.value) || 10;
+            const seatOrder = seatOrderRadio.value;
 
             const config = {
                 cols: cols,
@@ -221,8 +238,16 @@ class TAToolApp {
     }
 
     _previewSeating() {
-        const cols = parseInt(document.getElementById('seatCols').value) || 10;
-        const rows = parseInt(document.getElementById('seatRows').value) || 10;
+        const colsInput = document.getElementById('seatCols');
+        const rowsInput = document.getElementById('seatRows');
+        
+        if (!colsInput || !rowsInput) {
+            alert('座席設定が見つかりません');
+            return;
+        }
+
+        const cols = parseInt(colsInput.value) || 10;
+        const rows = parseInt(rowsInput.value) || 10;
         const totalSeats = cols * rows;
 
         if (totalSeats < this.students.length) {
