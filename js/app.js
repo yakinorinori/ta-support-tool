@@ -356,10 +356,29 @@ class TAToolApp {
     }
 
     _loadAllUploadedFiles() {
-        let totalStudents = [];
+        // 未処理のファイル数をカウント
+        let unprocessedCount = 0;
+        this.uploadedFiles.forEach(fileData => {
+            if (fileData.studentCount === 0) {
+                unprocessedCount++;
+            }
+        });
+
+        if (unprocessedCount === 0) {
+            // 全ファイルが既に処理済み
+            this._updateFilesList();
+            this._updateStudentCount();
+            return;
+        }
+
         let filesProcessed = 0;
 
         this.uploadedFiles.forEach((fileData, idx) => {
+            // 既に処理済みのファイルはスキップ
+            if (fileData.studentCount > 0) {
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = (event) => {
                 try {
@@ -369,16 +388,12 @@ class TAToolApp {
 
                     fileData.students = students;
                     fileData.studentCount = students.length;
-                    totalStudents = [...totalStudents, ...students];
 
                     filesProcessed++;
 
                     // 全ファイルが処理完了したら
-                    if (filesProcessed === this.uploadedFiles.length) {
-                        this.students = totalStudents;
-                        this._updateFilesList();
-                        this._updateStudentCount();
-                        this._showStatus('uploadStatus', 'success', `✅ 合計${this.students.length}名の学生を読み込みました`);
+                    if (filesProcessed === unprocessedCount) {
+                        this._consolidateStudents();
                     }
                 } catch (error) {
                     this._showStatus('uploadStatus', 'error', `❌ ${fileData.name}: ${error.message}`);
@@ -391,6 +406,36 @@ class TAToolApp {
 
             reader.readAsText(fileData.file);
         });
+    }
+
+    _consolidateStudents() {
+        // 全ファイルから学生データを統合
+        let allStudents = [];
+        
+        this.uploadedFiles.forEach(fileData => {
+            if (fileData.students && fileData.students.length > 0) {
+                allStudents = [...allStudents, ...fileData.students];
+            }
+        });
+
+        // 重複排除
+        const uniqueStudents = [];
+        const seen = new Set();
+        
+        for (const student of allStudents) {
+            if (!seen.has(student.id)) {
+                uniqueStudents.push(student);
+                seen.add(student.id);
+            }
+        }
+
+        // ソート
+        uniqueStudents.sort((a, b) => a.id.localeCompare(b.id));
+        
+        this.students = uniqueStudents;
+        this._updateFilesList();
+        this._updateStudentCount();
+        this._showStatus('uploadStatus', 'success', `✅ 合計${this.students.length}名の学生を読み込みました`);
     }
 
     _updateStudentCount() {
