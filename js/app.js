@@ -144,29 +144,38 @@ class TAToolApp {
     }
 
     _switchTool(tool) {
+        console.log(`ツール切り替え: ${tool}, 学生数: ${this.students.length}`);
+        
         if (!this.students.length) {
-            this._showStatus('uploadStatus', 'warning', '⚠️ 先に名簿をアップロードしてください');
+            console.warn('学生が読み込まれていません');
+            alert('⚠️ 先に名簿をアップロードしてください');
             return;
         }
 
+        console.log(`${tool}ツールを表示します`);
+
         // すべてのセクションを非表示
-        document.getElementById('uploadSection').style.display = 'none';
-        document.getElementById('seatingContent').style.display = 'none';
-        document.getElementById('gradingContent').style.display = 'none';
-        document.getElementById('attendanceContent').style.display = 'none';
-        document.getElementById('completeSection').style.display = 'none';
+        const uploadSection = document.getElementById('uploadSection');
+        const seatingContent = document.getElementById('seatingContent');
+        const gradingContent = document.getElementById('gradingContent');
+        const attendanceContent = document.getElementById('attendanceContent');
+        
+        if (uploadSection) uploadSection.style.display = 'none';
+        if (seatingContent) seatingContent.style.display = 'none';
+        if (gradingContent) gradingContent.style.display = 'none';
+        if (attendanceContent) attendanceContent.style.display = 'none';
 
         // 選択されたツールを表示
         switch (tool) {
             case 'seating':
-                document.getElementById('seatingContent').style.display = 'block';
+                if (seatingContent) seatingContent.style.display = 'block';
                 this._updateSeatInfo();
                 break;
             case 'grading':
-                document.getElementById('gradingContent').style.display = 'block';
+                if (gradingContent) gradingContent.style.display = 'block';
                 break;
             case 'attendance':
-                document.getElementById('attendanceContent').style.display = 'block';
+                if (attendanceContent) attendanceContent.style.display = 'block';
                 break;
         }
     }
@@ -330,6 +339,9 @@ class TAToolApp {
             return !this.uploadedFiles.find(f => f.name === file.name);
         });
 
+        console.log('🔹 新しいファイル追加:', newFiles.length, newFiles.map(f => f.name));
+        console.log('🔹 現在のアップロード済みファイル:', this.uploadedFiles.length);
+
         // 新しいファイルを追加
         newFiles.forEach(file => {
             this.uploadedFiles.push({
@@ -339,6 +351,8 @@ class TAToolApp {
                 students: []
             });
         });
+
+        console.log('🔹 合計アップロードファイル数:', this.uploadedFiles.length, this.uploadedFiles.map(f => f.name));
 
         // リスト表示を更新
         this._updateFilesList();
@@ -389,8 +403,13 @@ class TAToolApp {
             }
         });
 
+        console.log('🔹 _loadAllUploadedFiles 実行');
+        console.log('🔹 未処理ファイル数:', unprocessedCount, '/ 総ファイル数:', this.uploadedFiles.length);
+        console.log('🔹 ファイル状態:', this.uploadedFiles.map(f => ({ name: f.name, count: f.studentCount })));
+
         if (unprocessedCount === 0) {
             // 全ファイルが既に処理済み
+            console.log('🔹 全ファイルが既に処理済み');
             this._updateFilesList();
             this._updateStudentCount();
             return;
@@ -401,8 +420,11 @@ class TAToolApp {
         this.uploadedFiles.forEach((fileData, idx) => {
             // 既に処理済みのファイルはスキップ
             if (fileData.studentCount > 0) {
+                console.log(`🔹 スキップ: ${fileData.name} (既に処理済み)`);
                 return;
             }
+
+            console.log(`🔹 ファイル読み込み開始: ${fileData.name}`);
 
             const reader = new FileReader();
             reader.onload = (event) => {
@@ -413,19 +435,25 @@ class TAToolApp {
 
                     fileData.students = students;
                     fileData.studentCount = students.length;
+                    
+                    console.log(`✅ ${fileData.name} ロード完了: ${students.length}名`);
 
                     filesProcessed++;
+                    console.log(`🔹 ファイル処理進捗: ${filesProcessed}/${unprocessedCount}`);
 
                     // 全ファイルが処理完了したら
                     if (filesProcessed === unprocessedCount) {
+                        console.log('🔹 全ファイル処理完了! 統合処理を実行...');
                         this._consolidateStudents();
                     }
                 } catch (error) {
+                    console.error(`❌ ${fileData.name}: ${error.message}`);
                     this._showStatus('uploadStatus', 'error', `❌ ${fileData.name}: ${error.message}`);
                 }
             };
 
             reader.onerror = () => {
+                console.error(`❌ ${fileData.name}: ファイルが読み込めません`);
                 this._showStatus('uploadStatus', 'error', `❌ ${fileData.name}: ファイルが読み込めません`);
             };
 
@@ -434,14 +462,18 @@ class TAToolApp {
     }
 
     _consolidateStudents() {
+        console.log('🔹 _consolidateStudents 開始');
         // 全ファイルから学生データを統合
         let allStudents = [];
         
         this.uploadedFiles.forEach(fileData => {
             if (fileData.students && fileData.students.length > 0) {
+                console.log(`📊 ${fileData.name}: ${fileData.students.length}名を追加`);
                 allStudents = [...allStudents, ...fileData.students];
             }
         });
+        
+        console.log('📊 統合前の学生数:', allStudents.length);
 
         // 重複排除
         const uniqueStudents = [];
@@ -457,10 +489,15 @@ class TAToolApp {
         // ソート
         uniqueStudents.sort((a, b) => a.id.localeCompare(b.id));
         
+        console.log('✅ 重複排除後の学生数:', uniqueStudents.length);
+        console.log('✅ 最終学生一覧（先頭10名）:', uniqueStudents.slice(0, 10).map(s => s.id));
+        
         this.students = uniqueStudents;
         this._updateFilesList();
         this._updateStudentCount();
         this._showStatus('uploadStatus', 'success', `✅ 合計${this.students.length}名の学生を読み込みました`);
+        
+        console.log('✅ 処理完了。this.students.length:', this.students.length);
     }
 
     _updateStudentCount() {
