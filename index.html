@@ -19,6 +19,21 @@
                 <div class="sidebar-section">
                     <h3>📋 名簿管理</h3>
                     <p class="student-count">0名</p>
+                    
+                    <!-- ファイルアップロード -->
+                    <div class="file-upload-section">
+                        <label class="file-upload-label">
+                            <input type="file" id="sidebarCsvFiles" accept=".csv" multiple />
+                            <span class="upload-button">📁 ファイルをアップロード</span>
+                        </label>
+                    </div>
+
+                    <!-- アップロード済みファイル一覧 -->
+                    <div id="sidebarFilesList" class="uploaded-files-sidebar" style="display: none;">
+                        <h4>📂 アップロード済み</h4>
+                        <ul id="sidebarFilesListItems"></ul>
+                        <button id="sidebarClearFilesBtn" class="btn btn-small btn-danger">ファイルをクリア</button>
+                    </div>
                 </div>
 
                 <!-- 機能メニュー -->

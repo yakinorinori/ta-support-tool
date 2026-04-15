@@ -6,6 +6,7 @@ class TAToolApp {
     constructor() {
         this.currentStep = 1;
         this.students = [];
+        this.uploadedFiles = []; // ファイル管理用
         this.config = {
             layout: 'grid',
             cols: 10,
@@ -26,9 +27,29 @@ class TAToolApp {
     }
 
     _setupEventListeners() {
-        // CSVアップロード
-        const csvFile = document.getElementById('csvFile');
-        csvFile.addEventListener('change', (e) => this._handleCSVUpload(e));
+        // CSVアップロード（メイン）
+        const csvFile = document.getElementById('csvFiles');
+        if (csvFile) {
+            csvFile.addEventListener('change', (e) => this._handleMultipleCSVUpload(e));
+        }
+
+        // CSVアップロード（サイドバー）
+        const sidebarCsvFiles = document.getElementById('sidebarCsvFiles');
+        if (sidebarCsvFiles) {
+            sidebarCsvFiles.addEventListener('change', (e) => this._handleSidebarCSVUpload(e));
+        }
+
+        // ファイルクリアボタン（サイドバー）
+        const clearFilesBtn = document.getElementById('sidebarClearFilesBtn');
+        if (clearFilesBtn) {
+            clearFilesBtn.addEventListener('click', () => this._clearAllFiles());
+        }
+
+        // ファイルクリアボタン（メイン）
+        const mainClearFilesBtn = document.getElementById('clearFilesBtn');
+        if (mainClearFilesBtn) {
+            mainClearFilesBtn.addEventListener('click', () => this._clearAllFiles());
+        }
 
         // レイアウト選択
         const layoutRadios = document.querySelectorAll('input[name="layout"]');
@@ -37,24 +58,50 @@ class TAToolApp {
         });
 
         // 座席数の動的計算
-        document.getElementById('cols').addEventListener('input', () => this._updateSeatInfo());
-        document.getElementById('rows').addEventListener('input', () => this._updateSeatInfo());
-        document.getElementById('threeSeatRows').addEventListener('input', () => this._updateSeatInfo());
-        document.getElementById('twoSeatRows').addEventListener('input', () => this._updateSeatInfo());
+        const colsInput = document.getElementById('cols');
+        const rowsInput = document.getElementById('rows');
+        const threeInput = document.getElementById('threeSeatRows');
+        const twoInput = document.getElementById('twoSeatRows');
+
+        if (colsInput) colsInput.addEventListener('input', () => this._updateSeatInfo());
+        if (rowsInput) rowsInput.addEventListener('input', () => this._updateSeatInfo());
+        if (threeInput) threeInput.addEventListener('input', () => this._updateSeatInfo());
+        if (twoInput) twoInput.addEventListener('input', () => this._updateSeatInfo());
 
         // 出力ファイル選択
-        document.getElementById('generate-grading').addEventListener('change', (e) => {
-            document.getElementById('gradingConfig').style.display = e.target.checked ? 'block' : 'none';
-        });
-        document.getElementById('generate-attendance').addEventListener('change', (e) => {
-            document.getElementById('attendanceConfig').style.display = e.target.checked ? 'block' : 'none';
-        });
+        const generateGradingCheckbox = document.getElementById('generate-grading');
+        const generateAttendanceCheckbox = document.getElementById('generate-attendance');
+        
+        if (generateGradingCheckbox) {
+            generateGradingCheckbox.addEventListener('change', (e) => {
+                const gradingConfig = document.getElementById('gradingConfig');
+                if (gradingConfig) gradingConfig.style.display = e.target.checked ? 'block' : 'none';
+            });
+        }
+        if (generateAttendanceCheckbox) {
+            generateAttendanceCheckbox.addEventListener('change', (e) => {
+                const attendanceConfig = document.getElementById('attendanceConfig');
+                if (attendanceConfig) attendanceConfig.style.display = e.target.checked ? 'block' : 'none';
+            });
+        }
 
         // 生成ボタン
-        document.getElementById('generateBtn').addEventListener('click', () => this._generateFiles());
+        const generateBtn = document.getElementById('generateBtn');
+        if (generateBtn) {
+            generateBtn.addEventListener('click', () => this._generateFiles());
+        }
 
         // リセットボタン
-        document.getElementById('resetBtn').addEventListener('click', () => this._reset());
+        const resetBtn = document.getElementById('resetBtn');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => this._reset());
+        }
+
+        // サイドバーのリセットボタン
+        const resetAllBtn = document.getElementById('resetAllBtn');
+        if (resetAllBtn) {
+            resetAllBtn.addEventListener('click', () => this._reset());
+        }
     }
 
     _setDefaultDate() {
@@ -62,6 +109,147 @@ class TAToolApp {
         const dateInput = document.getElementById('startDate');
         dateInput.value = formatDate(today);
         this.config.startDate = formatDate(today);
+    }
+
+    _handleMultipleCSVUpload(e) {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        // ファイルを追加
+        this._addFilesToUploadList(Array.from(files));
+    }
+
+    _handleSidebarCSVUpload(e) {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        // ファイルを追加
+        this._addFilesToUploadList(Array.from(files));
+    }
+
+    _addFilesToUploadList(files) {
+        const newFiles = files.filter(file => {
+            // 同じ名前のファイルが既に存在するかチェック
+            return !this.uploadedFiles.find(f => f.name === file.name);
+        });
+
+        // 新しいファイルを追加
+        newFiles.forEach(file => {
+            this.uploadedFiles.push({
+                name: file.name,
+                file: file,
+                studentCount: 0,
+                students: []
+            });
+        });
+
+        // リスト表示を更新
+        this._updateFilesList();
+
+        // 全ファイルのデータを読み込む
+        this._loadAllUploadedFiles();
+    }
+
+    _updateFilesList() {
+        const sidebarList = document.getElementById('sidebarFilesListItems');
+        const mainList = document.getElementById('filesList');
+
+        if (!this.uploadedFiles.length) {
+            // ファイルが無い場合は表示を隠す
+            if (document.getElementById('uploadedFilesList')) {
+                document.getElementById('uploadedFilesList').style.display = 'none';
+            }
+            if (document.getElementById('sidebarFilesList')) {
+                document.getElementById('sidebarFilesList').style.display = 'none';
+            }
+            return;
+        }
+
+        // ファイル一覧表示を更新
+        let html = '';
+        this.uploadedFiles.forEach((fileData, idx) => {
+            html += `<li data-index="${idx}">📄 ${fileData.name} <span class="file-count">(${fileData.studentCount}名)</span></li>`;
+        });
+
+        if (sidebarList) sidebarList.innerHTML = html;
+        if (mainList) mainList.innerHTML = html;
+
+        // コンテナを表示
+        if (document.getElementById('uploadedFilesList')) {
+            document.getElementById('uploadedFilesList').style.display = 'block';
+        }
+        if (document.getElementById('sidebarFilesList')) {
+            document.getElementById('sidebarFilesList').style.display = 'block';
+        }
+    }
+
+    _loadAllUploadedFiles() {
+        let totalStudents = [];
+        let filesProcessed = 0;
+
+        this.uploadedFiles.forEach((fileData, idx) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const csv = event.target.result;
+                    const csvData = parseCSV(csv);
+                    const students = extractStudents(csvData);
+
+                    fileData.students = students;
+                    fileData.studentCount = students.length;
+                    totalStudents = [...totalStudents, ...students];
+
+                    filesProcessed++;
+
+                    // 全ファイルが処理完了したら
+                    if (filesProcessed === this.uploadedFiles.length) {
+                        this.students = totalStudents;
+                        this._updateFilesList();
+                        this._updateStudentCount();
+                        this._showStatus('uploadStatus', 'success', `✅ 合計${this.students.length}名の学生を読み込みました`);
+                    }
+                } catch (error) {
+                    this._showStatus('uploadStatus', 'error', `❌ ${fileData.name}: ${error.message}`);
+                }
+            };
+
+            reader.onerror = () => {
+                this._showStatus('uploadStatus', 'error', `❌ ${fileData.name}: ファイルが読み込めません`);
+            };
+
+            reader.readAsText(fileData.file);
+        });
+    }
+
+    _updateStudentCount() {
+        const studentCountElement = document.querySelector('.student-count');
+        if (studentCountElement) {
+            studentCountElement.textContent = `${this.students.length}名`;
+        }
+    }
+
+    _clearAllFiles() {
+        // ファイル入力をクリア
+        const csvFiles = document.getElementById('csvFiles');
+        const sidebarCsvFiles = document.getElementById('sidebarCsvFiles');
+        if (csvFiles) csvFiles.value = '';
+        if (sidebarCsvFiles) sidebarCsvFiles.value = '';
+
+        // データをクリア
+        this.uploadedFiles = [];
+        this.students = [];
+        this._updateFilesList();
+        this._updateStudentCount();
+
+        // ステータスメッセージをクリア
+        const uploadStatus = document.getElementById('uploadStatus');
+        if (uploadStatus) uploadStatus.textContent = '';
+
+        // 表示を隠す
+        const uploadedFilesList = document.getElementById('uploadedFilesList');
+        const sidebarFilesList = document.getElementById('sidebarFilesList');
+        if (uploadedFilesList) uploadedFilesList.style.display = 'none';
+        if (sidebarFilesList) sidebarFilesList.style.display = 'none';
     }
 
     _handleCSVUpload(e) {
@@ -231,19 +419,36 @@ class TAToolApp {
 
     _reset() {
         // UIをリセット
-        document.getElementById('csvFile').value = '';
-        document.getElementById('uploadStatus').textContent = '';
-        document.getElementById('generate-seating').checked = true;
-        document.getElementById('generate-grading').checked = false;
-        document.getElementById('generate-attendance').checked = false;
-        document.getElementById('gradingConfig').style.display = 'none';
-        document.getElementById('attendanceConfig').style.display = 'none';
-        document.getElementById('generationStatus').textContent = '';
-        document.getElementById('downloadList').innerHTML = '';
+        const csvFiles = document.getElementById('csvFiles');
+        const sidebarCsvFiles = document.getElementById('sidebarCsvFiles');
+        if (csvFiles) csvFiles.value = '';
+        if (sidebarCsvFiles) sidebarCsvFiles.value = '';
+
+        // ステータスメッセージをリセット
+        const uploadStatus = document.getElementById('uploadStatus');
+        const generateGradingCheckbox = document.getElementById('generate-grading');
+        const generateAttendanceCheckbox = document.getElementById('generate-attendance');
+        const gradingConfig = document.getElementById('gradingConfig');
+        const attendanceConfig = document.getElementById('attendanceConfig');
+        const generationStatus = document.getElementById('generationStatus');
+        const downloadList = document.getElementById('downloadList');
+
+        if (uploadStatus) uploadStatus.textContent = '';
+        if (generateGradingCheckbox) generateGradingCheckbox.checked = false;
+        if (generateAttendanceCheckbox) generateAttendanceCheckbox.checked = false;
+        if (gradingConfig) gradingConfig.style.display = 'none';
+        if (attendanceConfig) attendanceConfig.style.display = 'none';
+        if (generationStatus) generationStatus.textContent = '';
+        if (downloadList) downloadList.innerHTML = '';
 
         // データをリセット
+        this.uploadedFiles = [];
         this.students = [];
         this.generatedFiles = [];
+
+        // UI表示をリセット
+        this._updateFilesList();
+        this._updateStudentCount();
 
         // ステップ1に戻る
         this._goToStep(1);
