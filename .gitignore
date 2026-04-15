@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+env/
+
+# Build outputs
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+.temp/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE-specific
+.vs/
+.vim/
+
+# Generated files
+output/
+temp/
